@@ -26,6 +26,3 @@ library(sf)
 library(scales)
 library(viridis)
 library(bigrquery)
-
-
-
