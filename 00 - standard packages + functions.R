@@ -33,5 +33,10 @@ cap_bikeshare_function <- function(x) {
   df <- read_csv(file.path(output_wd, "unzipped", x), col_types = "cccccccccccccc") %>% 
     mutate(file=x)
   print(ncol(df))
+  table_name <- str_replace_all(x, "-", "_")
+  table_name <- str_replace(table_name, "_tripdata.csv", "")
+  bq_table_create(paste0("cap-bikeshare-441121.raw_bikeshare_data.",table_name), as_bq_fields(df))
+  bq_table_upload(paste0("cap-bikeshare-441121.raw_bikeshare_data.",table_name), df)
+  gc()
   return(df)
 }

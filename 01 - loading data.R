@@ -1,3 +1,22 @@
+## Summary: This script downloads all current files from capital bokeshare,
+## saves it on your local machine, unzips the files, reads them into R,
+## and creates one big table for all bike rides over time. 
+## All individual raw files are uploaded into BQ as well as a sample
+## from the bound file (both raw and clean) for future analysis/ exploration.
+## The merged dataset is too large to do any real analysis on my local
+## machine. Any cleaning to create a final, full dataset of all rides
+## will likely need to be done in BQ.
+
+## Sources used:
+# Other ways to load into BQ to think about: https://medium.com/google-cloud/bigquery-explained-data-ingestion-cdc26a588d0
+# Documentation: https://cloud.google.com/bigquery/docs/loading-data
+# Stack Overflow post used: https://stackoverflow.com/questions/73722424/how-to-upload-table-data-frame-from-r-to-bigquery
+# bigrquery documentation: https://bigrquery.r-dbi.org/
+
+## NEXT STEPS:
+# - write SQL to emulate cleaning code of sample to create a clean file
+# of all bikeshare rides (be sure to include the creation of a unique ID)
+
 # HEADER -----------------------------------------------------------------------
 rm(list=ls())
 gc()
@@ -51,28 +70,22 @@ for (f in list.files(output_wd, full.names = T)) {
 rm(f)
 
 # OPENING AND COMBINING DATA ---------------------------------------------------
-## Goes through each filename in files, reads in as CSV (and prints filename
-## and number of columns), and binds together
-## to create cap_bikeshare dataset
+## Goes through each filename in files:
+# -reads in as CSV 
+# -(and prints filename and number of columns)
+# -uploads to BQ
+# -binds all together to create cap_bikeshare dataset
 ## NOTE: reading all columns as characters right now so bind will go smoothly
-timestamp() ##------ Thu Nov  7 16:28:04 2024 ------##
+timestamp() ##------ Fri Nov  8 16:39:49 2024 ------##
 cap_bikeshare <- map_df(list.files(file.path(output_wd, 'unzipped'), pattern = "\\.csv"),
                         function(x) cap_bikeshare_function(x))
-timestamp() ##------ Thu Nov  7 16:33:37 2024 ------##
-## NOTE: 25 GB's of R memory used to load this in (hence loading it to BQ)
-
-# PUTTING RAW DATA ON BQ -------------------------------------------------------
-timestamp() ##------ Fri Nov  8 15:50:10 2024 ------##
-bq_table_create("kh-data-projects.cap_bikeshare.bikeshare_all_rides_raw", as_bq_fields(cap_bikeshare))
-bq_table_upload("kh-data-projects.cap_bikeshare.bikeshare_all_rides_raw", cap_bikeshare)
 timestamp()
+## NOTE: 25 GB's of R memory used to load this in (hence loading it to BQ)
 
 # DATA CHECKS ------------------------------------------------------------------
 ## NOTE: There is no April 2020 file on website, when you download
 ## the folder of April 2024 the dates in the file say 2024 BUT the file
 ## is labeled 2020
-## NOTE: Will base all dates off of start dates (if passed midnight, will default to
-## start time/ day)
 nrow(cap_bikeshare)
 length(unique(cap_bikeshare$file)) == length(list.files(file.path(output_wd, 'unzipped'), pattern = "\\.csv"))
 View(head(cap_bikeshare, 100))
@@ -118,6 +131,8 @@ unique(sample$`Member type`)
 ## Variable names seem to change April 2020 (explains why there is
 ## no data for that month, must have been doing some sort of shift)
 
+## NOTE: Will base all dates off of start dates (if passed midnight, will default to
+## start time/ day)
 ## Sample cleaning code
 sample_clean <- sample %>%
   mutate(start_date_kh = ifelse(is.na(`Start date`), started_at,  `Start date`),
@@ -140,36 +155,11 @@ sample_clean <- sample %>%
          file)
 
 # UPLOADING SAMPLE TO BQ -------------------------------------------------------
-bq_table_create("kh-data-projects.cap_bikeshare.sample_data_raw", as_bq_fields(sample))
-bq_table_upload("kh-data-projects.cap_bikeshare.sample_data_raw", sample)
+bq_table_create("cap-bikeshare-441121.sample_bikeshare_data.sample_data_raw", as_bq_fields(sample))
+bq_table_upload("cap-bikeshare-441121.sample_bikeshare_data.sample_data_raw", sample)
 
-bq_table_create("kh-data-projects.cap_bikeshare.sample_data", as_bq_fields(sample_clean))
-bq_table_upload("kh-data-projects.cap_bikeshare.sample_data", sample_clean)
+bq_table_create("cap-bikeshare-441121.sample_bikeshare_data.sample_data", as_bq_fields(sample_clean))
+bq_table_upload("cap-bikeshare-441121.sample_bikeshare_data.sample_data", sample_clean)
 
 rm(sample, sample_clean)
 gc()
-
-# CLEANING ENTIRE BIKESHARE DATASET --------------------------------------------
-cap_bikeshare_clean <- cap_bikeshare %>%
-  mutate(start_date_kh = ifelse(is.na(`Start date`), started_at,  `Start date`),
-         year = lubridate::year(start_date_kh),
-         month = lubridate::month(start_date_kh),
-         year_month = format(as.Date(start_date_kh), "%Y-%m"),
-         end_date_kh = ifelse(year_month > '2020-04', ended_at,  `End date`),
-         member_type_kh = str_to_lower(ifelse(year_month > '2020-04', member_casual, `Member type`)),
-         id_kh = ifelse(year_month > '2020-04', ride_id, `Bike number`),
-         duration_kh = difftime(end_date_kh,start_date_kh, units="mins"),
-         start_station_id_kh = ifelse(year_month > '2020-04', start_station_id, `Start station number`),
-         start_station_name_kh =  ifelse(year_month > '2020-04', start_station_name, `Start station`),
-         end_station_id_kh =  ifelse(year_month > '2020-04',end_station_id , `End station number`),
-         end_station_name_kh =  ifelse(year_month > '2020-04', end_station_name, `End station`)) %>%
-  select(id_kh, ride_id, bike_number=`Bike number`, 
-         year, month, year_month, 
-         rideable_type,
-         ends_with("_kh"),
-         start_lat, start_lng, end_lat, end_lng,
-         file)
-
-# WRITE TO BQ ------------------------------------------------------------------
-bq_table_create("kh-data-projects.cap_bikeshare.bikeshare_all_rides", as_bq_fields(cap_bikeshare_clean))
-bq_table_upload("kh-data-projects.cap_bikeshare.bikeshare_all_rides", cap_bikeshare_clean)
