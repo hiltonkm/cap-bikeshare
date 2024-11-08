@@ -26,3 +26,12 @@ library(sf)
 library(scales)
 library(viridis)
 library(bigrquery)
+library(DBI)
+
+cap_bikeshare_function <- function(x) {
+  print(x)
+  df <- read_csv(file.path(output_wd, "unzipped", x), col_types = "cccccccccccccc") %>% 
+    mutate(file=x)
+  print(ncol(df))
+  return(df)
+}

@@ -51,30 +51,125 @@ for (f in list.files(output_wd, full.names = T)) {
 rm(f)
 
 # OPENING AND COMBINING DATA ---------------------------------------------------
-## Goes through each filename in files, reads in as CSV, and binds together
+## Goes through each filename in files, reads in as CSV (and prints filename
+## and number of columns), and binds together
 ## to create cap_bikeshare dataset
 ## NOTE: reading all columns as characters right now so bind will go smoothly
-timestamp() ##------ Thu Nov  7 16:17:07 2024 ------##
-files <- list.files(file.path(output_wd, 'unzipped'), pattern = "\\.csv")
-cap_bikeshare <- map_df(files,
-  function(x) 
-    read_csv(file.path(output_wd, "unzipped", x), col_types = rep("c", 14)) %>% 
-    mutate(file=x)
-  )
+timestamp() ##------ Thu Nov  7 16:28:04 2024 ------##
+cap_bikeshare <- map_df(list.files(file.path(output_wd, 'unzipped'), pattern = "\\.csv"),
+                        function(x) cap_bikeshare_function(x))
+timestamp() ##------ Thu Nov  7 16:33:37 2024 ------##
+## NOTE: 25 GB's of R memory used to load this in (hence loading it to BQ)
+
+# PUTTING RAW DATA ON BQ -------------------------------------------------------
+timestamp() ##------ Fri Nov  8 15:50:10 2024 ------##
+bq_table_create("kh-data-projects.cap_bikeshare.bikeshare_all_rides_raw", as_bq_fields(cap_bikeshare))
+bq_table_upload("kh-data-projects.cap_bikeshare.bikeshare_all_rides_raw", cap_bikeshare)
 timestamp()
 
-# CLEAN DATA -------------------------------------------------------------------
-length(unique(cap_bikeshare$file)) == length(files)
-colnames(cap_bikeshare)
+# DATA CHECKS ------------------------------------------------------------------
+## NOTE: There is no April 2020 file on website, when you download
+## the folder of April 2024 the dates in the file say 2024 BUT the file
+## is labeled 2020
+## NOTE: Will base all dates off of start dates (if passed midnight, will default to
+## start time/ day)
+nrow(cap_bikeshare)
+length(unique(cap_bikeshare$file)) == length(list.files(file.path(output_wd, 'unzipped'), pattern = "\\.csv"))
 View(head(cap_bikeshare, 100))
-length(unique(cap_bikeshare$ride_id)) == nrow(cap_bikeshare)
 summary(cap_bikeshare)
+colnames(cap_bikeshare)
 
-cap_bikeshare <- cap_bikeshare %>%
-  mutate(year = str_sub(file, 1, 4),
-         month = month(started_at))
-tabyl(cap_bikeshare, year)
+## Unique ID?
+length(unique(cap_bikeshare$ride_id)) == nrow(cap_bikeshare)
+length(unique(cap_bikeshare$ride_id)) == nrow(filter(cap_bikeshare, !is.na(ride_id)))
+length(unique(cap_bikeshare$`Bike number`)) == nrow(filter(cap_bikeshare, !is.na(`Bike number`)))
+length(unique(cap_bikeshare$ride_id)) == nrow(filter(cap_bikeshare, !is.na(started_at)))
+length(unique(cap_bikeshare$`Bike number`)) == nrow(filter(cap_bikeshare, is.na(started_at)))
 
-# WRITE TO BQ -------year()# WRITE TO BQ ------------------------------------------------------------------
-?bq_table_upload()
+## NOTE: may need to create a unique ID by ride
 
+# CREATING SMALLER SAMPLE TO CLEAN/ TAKE A CLOSER LOOK -------------------------
+## Getting a sample to look at closer- keeping top 5 observations from each file
+sample <- cap_bikeshare %>%
+  group_by(file) %>%
+  mutate(row = row_number()) %>%
+  ungroup() %>%
+  filter(row <= 5)
+  
+## Put variables of the same name side by side
+sample <- sample %>%
+  mutate(year = year(`Start date`),
+         month = month(`Start date`)) %>%
+  select(ride_id, year, month,
+         `Bike number`,rideable_type,
+         `Member type`,member_casual,
+         `Start date`, started_at,
+         `End date`, ended_at,
+         Duration,
+         `Start station number`, start_station_id,
+         `Start station`,start_station_name,
+         `End station`, end_station_name,
+         `End station number`, end_station_id,
+         start_lat, start_lng, end_lat, end_lng,
+         file)
+View(sample)
+unique(sample$member_casual)
+unique(sample$`Member type`)
+## Variable names seem to change April 2020 (explains why there is
+## no data for that month, must have been doing some sort of shift)
+
+## Sample cleaning code
+sample_clean <- sample %>%
+  mutate(start_date_kh = ifelse(is.na(`Start date`), started_at,  `Start date`),
+         year = lubridate::year(start_date_kh),
+         month = lubridate::month(start_date_kh),
+         year_month = format(as.Date(start_date_kh), "%Y-%m"),
+         end_date_kh = ifelse(year_month > '2020-04', ended_at,  `End date`),
+         member_type_kh = str_to_lower(ifelse(year_month > '2020-04', member_casual, `Member type`)),
+         id_kh = ifelse(year_month > '2020-04', ride_id, `Bike number`),
+         duration_kh = as.numeric(difftime(end_date_kh,start_date_kh, units="mins")),
+         start_station_id_kh = ifelse(year_month > '2020-04', start_station_id, `Start station number`),
+         start_station_name_kh =  ifelse(year_month > '2020-04', start_station_name, `Start station`),
+         end_station_id_kh =  ifelse(year_month > '2020-04',end_station_id , `End station number`),
+         end_station_name_kh =  ifelse(year_month > '2020-04', end_station_name, `End station`)) %>%
+  select(id_kh, ride_id, bike_number=`Bike number`, 
+         year, month, year_month, 
+         rideable_type,
+         ends_with("_kh"),
+         start_lat, start_lng, end_lat, end_lng,
+         file)
+
+# UPLOADING SAMPLE TO BQ -------------------------------------------------------
+bq_table_create("kh-data-projects.cap_bikeshare.sample_data_raw", as_bq_fields(sample))
+bq_table_upload("kh-data-projects.cap_bikeshare.sample_data_raw", sample)
+
+bq_table_create("kh-data-projects.cap_bikeshare.sample_data", as_bq_fields(sample_clean))
+bq_table_upload("kh-data-projects.cap_bikeshare.sample_data", sample_clean)
+
+rm(sample, sample_clean)
+gc()
+
+# CLEANING ENTIRE BIKESHARE DATASET --------------------------------------------
+cap_bikeshare_clean <- cap_bikeshare %>%
+  mutate(start_date_kh = ifelse(is.na(`Start date`), started_at,  `Start date`),
+         year = lubridate::year(start_date_kh),
+         month = lubridate::month(start_date_kh),
+         year_month = format(as.Date(start_date_kh), "%Y-%m"),
+         end_date_kh = ifelse(year_month > '2020-04', ended_at,  `End date`),
+         member_type_kh = str_to_lower(ifelse(year_month > '2020-04', member_casual, `Member type`)),
+         id_kh = ifelse(year_month > '2020-04', ride_id, `Bike number`),
+         duration_kh = difftime(end_date_kh,start_date_kh, units="mins"),
+         start_station_id_kh = ifelse(year_month > '2020-04', start_station_id, `Start station number`),
+         start_station_name_kh =  ifelse(year_month > '2020-04', start_station_name, `Start station`),
+         end_station_id_kh =  ifelse(year_month > '2020-04',end_station_id , `End station number`),
+         end_station_name_kh =  ifelse(year_month > '2020-04', end_station_name, `End station`)) %>%
+  select(id_kh, ride_id, bike_number=`Bike number`, 
+         year, month, year_month, 
+         rideable_type,
+         ends_with("_kh"),
+         start_lat, start_lng, end_lat, end_lng,
+         file)
+
+# WRITE TO BQ ------------------------------------------------------------------
+bq_table_create("kh-data-projects.cap_bikeshare.bikeshare_all_rides", as_bq_fields(cap_bikeshare_clean))
+bq_table_upload("kh-data-projects.cap_bikeshare.bikeshare_all_rides", cap_bikeshare_clean)
