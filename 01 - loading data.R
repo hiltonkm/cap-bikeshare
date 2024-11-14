@@ -17,6 +17,8 @@
 # - write SQL to emulate cleaning code of sample to create a clean file
 # of all bikeshare rides (be sure to include the creation of a unique ID)
 
+normalizePath(R.home())
+
 # HEADER -----------------------------------------------------------------------
 rm(list=ls())
 gc()
@@ -76,8 +78,9 @@ rm(f)
 # -uploads to BQ
 # -binds all together to create cap_bikeshare dataset
 ## NOTE: reading all columns as characters right now so bind will go smoothly
-timestamp() ##------ Fri Nov  8 16:39:49 2024 ------##
-cap_bikeshare <- map_df(list.files(file.path(output_wd, 'unzipped'), pattern = "\\.csv"),
+timestamp()
+files <- list.files(file.path(output_wd, 'unzipped'), pattern = "\\.csv")
+cap_bikeshare <- map_df(files,
                         function(x) cap_bikeshare_function(x))
 timestamp()
 ## NOTE: 25 GB's of R memory used to load this in (hence loading it to BQ)
