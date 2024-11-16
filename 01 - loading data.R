@@ -13,10 +13,6 @@
 # Stack Overflow post used: https://stackoverflow.com/questions/73722424/how-to-upload-table-data-frame-from-r-to-bigquery
 # bigrquery documentation: https://bigrquery.r-dbi.org/
 
-## NEXT STEPS:
-# - write SQL to emulate cleaning code of sample to create a clean file
-# of all bikeshare rides (be sure to include the creation of a unique ID)
-
 normalizePath(R.home())
 
 # HEADER -----------------------------------------------------------------------
