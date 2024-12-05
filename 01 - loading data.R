@@ -1,4 +1,4 @@
-## Summary: This script downloads all current files from capital bokeshare,
+## Summary: This script downloads all current files from capital bikeshare,
 ## saves it on your local machine, unzips the files, reads them into R,
 ## and creates one big table for all bike rides over time. 
 ## All individual raw files are uploaded into BQ as well as a sample
