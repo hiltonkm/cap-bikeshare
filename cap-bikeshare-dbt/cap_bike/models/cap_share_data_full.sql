@@ -12,11 +12,11 @@ select
     , bike_number
     , year
     , month
-    , lower(member_type) as member_type
+    , UPPER(member_type) as member_type
     , rideable_type
     , case when rideable_type IN ('electric_bike', 'electric_scooter') then 1 else 0 end as e_flag
-    , case when rideable_type IN ('electric_bike', 'electric_scooter') then 'electric' 
-            when rideable_type IN ('classic_bike', 'docked_bike') then 'classic'
+    , case when rideable_type IN ('electric_bike', 'electric_scooter') then 'ELECTRIC' 
+            when rideable_type IN ('classic_bike', 'docked_bike') then 'CLASSIC'
             else null end as rideable_type_binary
     , start_date
     , end_date
