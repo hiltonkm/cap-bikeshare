@@ -159,6 +159,6 @@ bq_table_upload("cap-bikeshare-441121.sample_bikeshare_data.sample_data_raw", sa
 
 bq_table_create("cap-bikeshare-441121.sample_bikeshare_data.sample_data", as_bq_fields(sample_clean))
 bq_table_upload("cap-bikeshare-441121.sample_bikeshare_data.sample_data", sample_clean)
-
+#bq_table_download("cap-bikeshare-441121.sample_bikeshare_data.sample_data")
 rm(sample, sample_clean)
 gc()
