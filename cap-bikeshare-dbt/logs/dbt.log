@@ -40,3 +40,17 @@ Runtime Error
 [0m11:02:15.309853 [debug] [MainThread]: Command `dbt run` failed at 11:02:15.309693 after 0.43 seconds
 [0m11:02:15.310326 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000027869EBA060>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000027869D7F2F0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000027869DCABE0>]}
 [0m11:02:15.310765 [debug] [MainThread]: Flushing usage events
+[0m11:28:01.829177 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000014634106E40>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000014633DAF250>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000014636B702D0>]}
+
+
+============================== 11:28:01.837291 | 8cd80316-7a15-4df1-b238-a845e5d9990c ==============================
+[0m11:28:01.837291 [info ] [MainThread]: Running with dbt=1.8.7
+[0m11:28:01.838869 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'write_json': 'True', 'log_cache_events': 'False', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': 'C:\\Users\\khilto01\\.dbt', 'version_check': 'True', 'warn_error': 'None', 'log_path': 'logs', 'fail_fast': 'False', 'debug': 'False', 'use_colors': 'True', 'use_experimental_parser': 'False', 'empty': 'False', 'quiet': 'False', 'no_print': 'None', 'log_format': 'default', 'static_parser': 'True', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'introspect': 'True', 'target_path': 'None', 'invocation_command': 'dbt run', 'send_anonymous_usage_stats': 'True'}
+[0m11:28:01.840459 [error] [MainThread]: Encountered an error:
+Runtime Error
+  No dbt_project.yml found at expected path C:\Users\khilto01\Documents\git\cap-bikeshare\cap-bikeshare-dbt\dbt_project.yml
+  Verify that each entry within packages.yml (and their transitive dependencies) contains a file named dbt_project.yml
+  
+[0m11:28:01.842369 [debug] [MainThread]: Command `dbt run` failed at 11:28:01.842082 after 0.27 seconds
+[0m11:28:01.843147 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000014636C0A060>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000014636ACF2F0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000014636B1ABE0>]}
+[0m11:28:01.843912 [debug] [MainThread]: Flushing usage events

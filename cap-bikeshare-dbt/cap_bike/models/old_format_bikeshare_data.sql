@@ -4,8 +4,8 @@
 
 {% for table in tables %}
 
-select `Bike number` as id
-    , "" as ride_id
+select
+    "" as ride_id
     , `Bike number` as bike_number
     , extract(YEAR from parse_datetime('%F %T', `Start date`)) as year
     , extract(MONTH from parse_datetime('%F %T', `Start date`)) as month
@@ -22,6 +22,7 @@ select `Bike number` as id
     , null as end_lat
     , null as end_lng
     , file
+    , 'old' as format
 from `{{ dataset }}.{{ table}}`
 
 {% if not loop.last -%} union all {%- endif %}

@@ -4,8 +4,8 @@
 
 {% for table in tables %}
 
-select ride_id as id
-    , ride_id
+select
+    ride_id
     , "" as bike_number
     , extract(YEAR from 
         case when REGEXP_CONTAINS(started_at, "\\.") then 
@@ -36,6 +36,7 @@ select ride_id as id
     , cast(end_lat as NUMERIC) as end_lat
     , cast(end_lng as NUMERIC) as end_lng
     , file
+    , 'new' as format
 from `{{ dataset }}.{{ table}}`
 
 {% if not loop.last -%} union all {%- endif %}
